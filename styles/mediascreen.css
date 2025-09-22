@@ -1,0 +1,8 @@
+
+* {
+  transition: unset;
+  -moz-transition: unset; /* Firefox 4 */
+  -webkit-transition: unset; /* Safari and Chrome */
+  -o-transition: unset; /* Opera */
+}
+

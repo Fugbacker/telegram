@@ -1,0 +1,115 @@
+/*@import url(http://fonts.googleapis.com/css?family=Open+Sans:400,600,700&subset=latin,cyrillic);*/
+
+* {
+	margin:0;
+	padding:0;
+	box-sizing: border-box;
+}
+html {
+	overflow-y: scroll;
+}
+aside, footer, address, header, .section {
+	display:block;
+}
+
+ol, ul, menu {
+	list-style: none;
+}
+
+img, iframe, video, embed {
+	max-width:100%;
+
+}
+
+b, strong, h1, h2, h3, h4, h5 {
+	font-weight: 600;
+}
+
+
+body {
+	color: #000;
+	font-family: 'Open Sans', Tahoma, Arial, sans-serif;
+	font-size: 16px;
+}
+
+h1, h2 {
+	font-size: 22px;
+	margin-bottom: 10px;
+}
+
+
+h1 {
+	text-align: center;
+}
+
+h3, .h3 {
+	font-size: 20px;
+	margin-bottom: 20px;
+	text-align: center;
+}
+
+
+footer {
+  background: #313a46 none repeat scroll 0 0;
+  border-top: 5px solid #ff9d30;
+  color: #fff;
+  display: inline-block;
+  width: 100%;
+  padding: 20px 0;
+  font-size: 13px;
+}
+
+footer a {
+	color: #fff;
+	text-decoration: none;
+}
+menu a {
+	text-decoration: none;
+	list-style: none;
+	color: #fff;
+}
+
+
+.bottomContainer {
+	position: fixed;
+	right: 5%;
+	bottom: 5%;
+	z-index: 1;
+}
+
+.object__arrows-btn {
+	width: 60px;
+	height: 60px;
+	background: #7f8894;
+	display: block;
+	cursor: pointer;
+	transition: all .1s linear;
+	text-align: center;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 14px;
+	color: #000000;
+	padding-top: 20px;
+	z-index: 1;
+}
+
+.object__arrows-btn-arrow {
+width: 30px;
+height: 16.16px;
+display: block;
+margin: 0 auto;
+background: url(../public/images/moreup.png) no-repeat scroll center center / auto 39px;
+}
+
+.object__arrows-btn:hover {
+background: #d8d8d8;
+}
+
+.object__arrows-btn._bottom .object__arrows-btn-arrow {
+margin-top: 5px;
+transform: rotate(180deg);
+}
+
+.object__arrows-btn._bottom {
+margin-top: 30px;
+}
