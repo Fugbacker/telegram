@@ -214,7 +214,7 @@ export default function CategoryPage({ initialChannels, totalChannels, categoryK
       <main className={style.main}>
         <div className={style.mainContainer}>
           <LiveSearch />
-          <h1 className={style.categoryTitle}>Каталог телеграм каналов, чатов и групп в категории "{categoryTitle}"</h1>
+          <h1 className={style.categoryTitle}>Каталог телеграм каналов, чатов и групп в категории {categoryTitle}</h1>
           <div className={style.container}>
           <div
             className={style.categoryDescription}
@@ -226,7 +226,7 @@ export default function CategoryPage({ initialChannels, totalChannels, categoryK
           <section className={style.categoriesPreviewSection1}>
               <div className={style.categoriesPreviewGrid}>
                   <div  className={style.widget}>
-                    <h2 className={style.sectionTitle}>{total} каналов на тему "{categoryTitle}"</h2>
+                    <h2 className={style.sectionTitle}>{total} каналов на тему {categoryTitle}</h2>
                     <div className={style.categoryPreviewChannels}>
                       {channels.map((channel) => {
                         // --- Функция для получения URL аватара ---
@@ -262,7 +262,7 @@ export default function CategoryPage({ initialChannels, totalChannels, categoryK
                       })}
                       {keywordsMap[categoryKey] && (
                         <div className={style.hastagContainer}>
-                        <h2 className={style.sectionTitle}>Хештеги категории "{categoryTitle}"</h2>
+                        <h2 className={style.sectionTitle}>Хештеги категории {categoryTitle}</h2>
                           <div className={style.hashtags}>
 
                           {keywordsMap[categoryKey].map((word, i) => (
