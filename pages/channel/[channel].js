@@ -822,7 +822,7 @@ function classifyChannel(channelData, categoriesMap) {
 export async function getServerSideProps(context) {
   const { channel } = context.query;
 
-  try {
+  // try {
     // 1. Получаем данные канала через API
     const channelRes = await axios(`http://localhost:3000/api/getChannels?username=${channel}`);
     const channelData = channelRes.data;
@@ -914,8 +914,8 @@ export async function getServerSideProps(context) {
         interestingCategory: categoriesMap[randomCategory],
       },
     };
-  } catch (err) {
-    return { notFound: true };
-  }
+  // } catch (err) {
+  //   return { notFound: true };
+  // }
 }
 
