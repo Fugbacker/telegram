@@ -824,7 +824,7 @@ export async function getServerSideProps(context) {
 
   try {
     // 1. Получаем данные канала через API
-    const channelRes = await axios(`https://teletype.su/api/getChannels?username=${channel}`);
+    const channelRes = await axios(`http://localhost:3000/api/getChannels?username=${channel}`);
     const channelData = channelRes.data;
 
     if (!channelData?.channel) {

@@ -5,7 +5,9 @@ import { StringSession } from "telegram/sessions/StringSession.js";
 const apiId = 26254561;
 const apiHash = "cb87483d0e8bf111f97a2e5fbeb5fd1d";
 const sessionKey =
-  "1AgAOMTQ5LjE1NC4xNjcuNDEBu6VAk89A+4JdQqDYYBWOSk7sLjcie4BjtZL4P3TZm3Tso7byPJmoF4f3TYbp4tj01mibaLwfLKpvwKp9nN8I9cTkZh4gScy/paKXSqXlBEU31EdrRyN8kaVZGrYs8rq0gIGwaClhuB/xeumpmslOZzD104uWS8AVXHR7Bc0vv0teC2O06eWaXrXCJur954d47TpANXf0gO9ivuRB13MehSQBwCnprzTxnWSdFSpmgSu1cmLbWkdMomJ2dFauGrf31Xm/bUspsMw74iR8k7agZz/wdWMVl/11fOq2WU9vJw0cia0mcGB/aIMC9NU6X+2AU8eLTndN1SY86xLWKkhEOp8=";
+  process.env.NODE_ENV === "production"
+    ? process.env.TG_SESSION_KEY_PROD
+    : process.env.TG_SESSION_KEY_DEV;
 
 let client = null;
 let isConnecting = false;
@@ -24,6 +26,7 @@ export function getTelegramClient() {
   }
   return client;
 }
+
 
 export async function safeConnect() {
   const client = getTelegramClient();
