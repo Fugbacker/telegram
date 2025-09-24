@@ -295,7 +295,7 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
     ...initialChannel,
     // photo: initialChannel.photo || "/default.png", // Эту строку можно удалить или закомментировать
   });
-   console.log('engCategory', engCategory);
+
   const keywords = keywordsMap[engCategory].map((word) => word);
 
   const [posts, setPosts] = useState(initialPosts);
@@ -500,26 +500,30 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
                         </svg>
                       )}
                     </h1>
+                    <div className={style.usernameContainer}>
+                      <div className={style.username}>
+                        <span>@{channelName}</span>
+                      </div>
 
-                    <div className={style.username}>
-                      <span>@{channelName}</span>
-                    </div>
+                      <div className={style.channelType}>
+                        {channelInfo.broadcast
+                          ? "Канал"
+                          : channelInfo.megagroup
+                            ? "Супергруппа"
+                            : "Группа"}
+                      </div>
 
                     <div className={style.channelType}>
-                      {channelInfo.broadcast
-                        ? "Канал"
-                        : channelInfo.megagroup
-                          ? "Супергруппа"
-                          : "Группа"}
+                      <Link href={`/category/${engCategory}`} title={`каталог телеграм каналов - ${category}`}>{category}</Link>
+                     </div>
                     </div>
-
                     <div className={style.stats}>
                       <div className={style.statItem}>
                         <FaUser /> {formatNumber(channelInfo.participantsCount)} подписчиков
                       </div>
-                      <div className={style.statItem}>
+                      {/* <div className={style.statItem}>
                         👮 Администраторов: {channelInfo.adminsCount || 0}
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                   <div className={style.description}>
@@ -570,7 +574,7 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
                           {/* Также добавляем обработку ошибок для аватара в посте */}
                           <img
                             src={channelPhoto} // Используем состояние channelPhoto
-                            alt="Автор"
+                            alt={channelInfo.title}
                             className={style.authorAvatar}
                             onError={handleImageError} // Добавляем обработчик ошибки
                           />
@@ -709,7 +713,9 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
           )}
 
               <div className={style.widget}>
-                <h2 className={style.sectionTitle}>Категории</h2>
+                <h2 className={style.sectionTitle}>
+                  <Link href={`/`} title="Телеграм каналы">Каталог</Link>
+                </h2>
                 <ul className={style.categoriesList1}>
                   {/* Убираем неверную попытку отображения иконки здесь */}
                   {Object.entries(categoriesMap).map(([categoryKey, categoryTitle]) => (

@@ -294,7 +294,9 @@ export default function CategoryPage({ initialChannels, totalChannels, categoryK
            <aside className={style.sidebar}>
             <section className={style.categoriesListSection}>
               <div className={style.widget}>
-                <h2 className={style.sectionTitle}>Категории</h2>
+                <h2 className={style.sectionTitle}>
+                  <Link href={`/`} title="Телеграм каналы">Каталог</Link>
+                </h2>
                 <ul className={style.categoriesList1}>
                   {/* Убираем неверную попытку отображения иконки здесь */}
                   {Object.entries(categoriesMap).map(([categoryKey, categoryTitle]) => (

@@ -9319,6 +9319,12 @@ a.fancybox {
   color: #1a1a1a;
 }
 
+.usernameContainer {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
 .username {
   display: inline-block;
 	background-color: #ff9d301a;
@@ -10320,6 +10326,11 @@ a.fancybox {
   padding-bottom: 10px;
 }
 
+.sectionTitle a {
+	color: #444;
+	text-decoration: none;
+}
+
 .categoriesList {
 	display: flex;
   flex-flow: row wrap;
@@ -10685,9 +10696,19 @@ a.fancybox {
 }
 
 .channelType {
-  font-size: 14px;
-  color: #777;
-  margin-top: 4px;
+	display: inline-block;
+  background-color: #ff9d301a;
+  color: #7f8894;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.channelType a {
+	color: #7f8894;
+	text-decoration: none;
 }
 
 .verifiedIcon {
