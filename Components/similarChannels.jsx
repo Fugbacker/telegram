@@ -3,7 +3,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import style from "../styles/File.module.css";
 import { FaUser } from "react-icons/fa";
+import photoChecker from '../public/images/default.png';
+
 const SimilarChannels = ({ similarChannels, category }) => {
+
+    const handleImageError = (e) => {
+      // Также устанавливаем src для элемента img вручную, чтобы избежать зацикливания
+      e.target.src = photoChecker.src;
+      // Отключаем обработчик, чтобы не было зацикливания, если default.png тоже не загрузится
+      e.target.onerror = null;
+    };
 
   return (
     <div>
@@ -21,9 +30,7 @@ const SimilarChannels = ({ similarChannels, category }) => {
                 width={80}
                 height={80}
                 className={style.image}
-                onError={(e) => {
-                  e.target.src = '/placeholder.jpg';
-                }}
+                onError={handleImageError}
               />
             </div>
             <div className={style.textContainer}>

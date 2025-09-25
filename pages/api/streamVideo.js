@@ -1,76 +1,86 @@
 // pages/api/streamVideo.js
-import { Api, TelegramClient } from "telegram";
-import { StringSession } from "telegram/sessions/StringSession.js";
+import { Api } from "telegram";
+import { getTelegramClient, safeConnect } from "../../utils/telegramClient";
 
-const apiId = 26254561;
-const apiHash = "cb87483d0e8bf111f97a2e5fbeb5fd1d";
-const stringSession = new StringSession("1AgAOMTQ5LjE1NC4xNjcuNDEBu6VAk89A+4JdQqDYYBWOSk7sLjcie4BjtZL4P3TZm3Tso7byPJmoF4f3TYbp4tj01mibaLwfLKpvwKp9nN8I9cTkZh4gScy/paKXSqXlBEU31EdrRyN8kaVZGrYs8rq0gIGwaClhuB/xeumpmslOZzD104uWS8AVXHR7Bc0vv0teC2O06eWaXrXCJur954d47TpANXf0gO9ivuRB13MehSQBwCnprzTxnWSdFSpmgSu1cmLbWkdMomJ2dFauGrf31Xm/bUspsMw74iR8k7agZz/wdWMVl/11fOq2WU9vJw0cia0mcGB/aIMC9NU6X+2AU8eLTndN1SY86xLWKkhEOp8=");
+const client = getTelegramClient();
 
-let client = new TelegramClient(stringSession, apiId, apiHash, {
-  connectionRetries: 5,
-});
-
-async function ensureConnected() {
-  if (!client.connected) {
-    await client.connect();
-  }
-}
-
-// ✅ ОТКЛЮЧАЕМ ЛИМИТ ОТВЕТА — для стриминга видео
 export const config = {
   api: {
-    responseLimit: false, // ← ВАЖНО: отключаем лимит 4MB
-    bodyParser: false,    // ← Опционально: если не используем body
+    responseLimit: false,
+    bodyParser: false,
   },
 };
 
 export default async function handler(req, res) {
-  const { messageId, channel } = req.query;
-
-  if (!messageId || !channel) {
-    return res.status(400).json({ error: "Missing messageId or channel" });
+  const { channel, messageId } = req.query;
+  if (!channel || !messageId) {
+    return res.status(400).json({ error: "Missing channel or messageId" });
   }
 
   try {
-    await ensureConnected();
+    await safeConnect();
 
-    // Получаем историю сообщений (можно оптимизировать через кэш или offset)
+    // Получаем сообщение
     const history = await client.invoke(
       new Api.messages.GetHistory({
         peer: channel,
         limit: 1,
         offsetId: parseInt(messageId),
-        addOffset: -1, // чтобы получить именно это сообщение
+        addOffset: -1,
       })
     );
 
-    const message = history.messages.find(m => m.id === parseInt(messageId));
-    if (!message || !message.media) {
-      return res.status(404).json({ error: "Message or media not found" });
+    const message = history.messages.find((m) => m.id === parseInt(messageId));
+    if (!message || !message.media?.document) {
+      return res.status(404).json({ error: "Message or video not found" });
     }
 
-    // 🔥 СТРИМИМ ВИДЕО ЧЕРЕЗ downloadMedia — без base64!
-    res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.setHeader('Accept-Ranges', 'bytes');
+    const doc = message.media.document;
+    const videoSize = doc.size?.valueOf?.() || doc.size || 0;
+    const mimeType = doc.mimeType || "video/mp4";
 
-    // Используем downloadMedia с outputFile: undefined — получим Buffer
-    const buffer = await client.downloadMedia(message.media, {});
+    const range = req.headers.range;
+    if (!range) {
+      // Отдаём целиком
+      res.setHeader("Content-Type", mimeType);
+      res.setHeader("Content-Length", videoSize);
 
-    if (!buffer || buffer.length === 0) {
-      return res.status(500).json({ error: "Failed to download video" });
+      const buffer = await client.downloadMedia(message.media, {});
+      return res.end(buffer);
     }
 
-    res.setHeader('Content-Length', buffer.length);
-    res.status(200).end(buffer);
+    // Range-стриминг
+    const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = Math.min(start + CHUNK_SIZE - 1, videoSize - 1);
+    const contentLength = end - start + 1;
 
-  } catch (err) {
-    console.error("❌ Ошибка стриминга видео:", err);
-
-    res.setHeader('Content-Type', 'application/json');
-    res.status(500).json({
-      error: "Failed to stream video",
-      details: err.message,
+    res.writeHead(206, {
+      "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": contentLength,
+      "Content-Type": mimeType,
     });
+
+    // 📌 фикс — thumbSize: "" (пустая строка!)
+    const location = new Api.InputDocumentFileLocation({
+      id: doc.id,
+      accessHash: doc.accessHash,
+      fileReference: doc.fileReference,
+      thumbSize: "", // ← чтобы не падал CastError
+    });
+
+    const buffer = await client.downloadFile(location, {
+      offset: start,
+      limit: contentLength,
+    });
+
+    return res.end(buffer);
+  } catch (err) {
+    console.error("❌ Ошибка streamVideo:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message });
+    }
   }
 }
