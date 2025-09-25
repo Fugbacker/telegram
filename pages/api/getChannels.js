@@ -32,15 +32,13 @@ async function downloadPhotoSafely(photo) {
   try {
     const best = selectBestPhotoSize(photo.sizes);
     if (!best) return null;
-
     const location = new Api.InputPhotoFileLocation({
       id: photo.id,
       accessHash: photo.accessHash,
       fileReference: photo.fileReference,
       thumbSize: best.type,
     });
-
-    return await downloadImageFile(client, location); // возвращаем Buffer
+    return await downloadImageFile(client, location);
   } catch (e) {
     console.warn("Ошибка загрузки фото:", e.message);
     return null;
@@ -53,15 +51,13 @@ async function downloadVideoThumbSafely(doc) {
   try {
     const best = selectBestPhotoSize(doc.thumbs);
     if (!best) return null;
-
     const location = new Api.InputDocumentFileLocation({
       id: doc.id,
       accessHash: doc.accessHash,
       fileReference: doc.fileReference,
       thumbSize: best.type,
     });
-
-    return await downloadImageFile(client, location); // Buffer
+    return await downloadImageFile(client, location);
   } catch (e) {
     console.warn("Ошибка загрузки превью:", e.message);
     return null;
@@ -94,7 +90,6 @@ async function parseUsers(users) {
 async function parseChannelFull(channelFull, username) {
   const chat = channelFull.chats?.[0];
   const full = channelFull.fullChat;
-
   let photo = null;
   try {
     const buf = await client.downloadProfilePhoto(username);
@@ -102,7 +97,6 @@ async function parseChannelFull(channelFull, username) {
   } catch (e) {
     console.warn("Не удалось скачать логотип канала:", e.message);
   }
-
   return {
     id: full.id.valueOf(),
     title: chat.title,
@@ -119,13 +113,14 @@ async function parseChannelFull(channelFull, username) {
   };
 }
 
-/** API handler */
 export default async function handler(req, res) {
-  const { username, limit = 10, offset_id = 0 } = req.query;
+  const { username, limit = 10, offset_id = 0, skip_media = "0" } = req.query;
+  const shouldLoadMedia = skip_media !== "1";
+
   if (!username) return res.status(400).json({ error: "Укажи username канала" });
 
   try {
-    console.log(`getChannels: username=${username} limit=${limit} offset_id=${offset_id}`);
+    console.log(`getChannels: username=${username} limit=${limit} offset_id=${offset_id} skip_media=${skip_media}`);
 
     // 1. Информация о канале
     const channel = await safeInvoke(new Api.channels.GetFullChannel({ channel: username }));
@@ -145,38 +140,41 @@ export default async function handler(req, res) {
       (history.messages || []).map(async (m) => {
         let media = null;
 
-        if (m.media instanceof Api.MessageMediaPhoto) {
-          const photoData = await downloadPhotoSafely(m.media.photo);
-          media = { type: "photo", data: photoData }; // Buffer
-        } else if (m.media instanceof Api.MessageMediaDocument) {
-          const doc = m.media.document;
-          if (doc.mimeType?.startsWith("video/")) {
-            const videoSize = doc.size?.valueOf?.() || doc.size || 0;
-            let videoData = null;
-
-            if (videoSize > 0 && videoSize <= 10 * 1024 * 1024) {
-              try {
-                const location = new Api.InputDocumentFileLocation({
-                  id: doc.id,
-                  accessHash: doc.accessHash,
-                  fileReference: doc.fileReference,
-                  thumbSize: "m",
-                });
-                videoData = await downloadVideoFile(client, location, videoSize); // Buffer
-              } catch (e) {
-                console.warn("Ошибка загрузки видео:", e.message);
+        if (shouldLoadMedia) {
+          if (m.media instanceof Api.MessageMediaPhoto) {
+            const photoData = await downloadPhotoSafely(m.media.photo);
+            media = { type: "photo", data: photoData };
+          } else if (m.media instanceof Api.MessageMediaDocument) {
+            const doc = m.media.document;
+            if (doc.mimeType?.startsWith("video/")) {
+              const videoSize = doc.size?.valueOf?.() || doc.size || 0;
+              let videoData = null;
+              if (videoSize > 0 && videoSize <= 10 * 1024 * 1024) {
+                try {
+                  const location = new Api.InputDocumentFileLocation({
+                    id: doc.id,
+                    accessHash: doc.accessHash,
+                    fileReference: doc.fileReference,
+                    thumbSize: "m",
+                  });
+                  videoData = await downloadVideoFile(client, location, videoSize);
+                } catch (e) {
+                  console.warn("Ошибка загрузки видео:", e.message);
+                }
               }
+              const thumb = await downloadVideoThumbSafely(doc);
+              media = {
+                type: "video",
+                playable: !!videoData,
+                data: videoData,
+                thumb,
+                size: videoSize,
+                mimeType: doc.mimeType,
+                fileId: doc.id.toString(),
+                accessHash: doc.accessHash.toString(),
+                fileReference: doc.fileReference.toString("base64"),
+              };
             }
-
-            const thumb = await downloadVideoThumbSafely(doc);
-            media = {
-              type: "video",
-              playable: !!videoData,
-              data: videoData, // Buffer
-              thumb, // Buffer
-              size: videoSize,
-              mimeType: doc.mimeType,
-            };
           }
         }
 
