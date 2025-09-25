@@ -4,6 +4,7 @@ import {
   safeInvoke,
   getTelegramClient,
   downloadImageFile,
+  downloadVideoFile,
 } from "../../utils/telegramClient";
 
 const client = getTelegramClient();
@@ -39,9 +40,30 @@ async function downloadPhotoSafely(photo) {
       thumbSize: best.type,
     });
 
-    return await downloadImageFile(client, location);
+    return await downloadImageFile(client, location); // возвращаем Buffer
   } catch (e) {
     console.warn("Ошибка загрузки фото:", e.message);
+    return null;
+  }
+}
+
+/** Скачивание превью для видео */
+async function downloadVideoThumbSafely(doc) {
+  if (!doc?.thumbs?.length) return null;
+  try {
+    const best = selectBestPhotoSize(doc.thumbs);
+    if (!best) return null;
+
+    const location = new Api.InputDocumentFileLocation({
+      id: doc.id,
+      accessHash: doc.accessHash,
+      fileReference: doc.fileReference,
+      thumbSize: best.type,
+    });
+
+    return await downloadImageFile(client, location); // Buffer
+  } catch (e) {
+    console.warn("Ошибка загрузки превью:", e.message);
     return null;
   }
 }
@@ -53,6 +75,18 @@ function parseReactions(reactions) {
     type: r.reaction.className,
     emoji: r.reaction.emoticon || "",
     count: r.count || 0,
+  }));
+}
+
+/** Парсинг юзеров */
+async function parseUsers(users) {
+  if (!users || !Array.isArray(users)) return [];
+  return users.map((u) => ({
+    id: u.id?.valueOf?.() ?? u.id,
+    username: u.username || null,
+    firstName: u.firstName || null,
+    lastName: u.lastName || null,
+    isBot: !!u.bot,
   }));
 }
 
@@ -75,13 +109,17 @@ async function parseChannelFull(channelFull, username) {
     username: chat.username || null,
     description: full.about || null,
     participantsCount: full.participantsCount || null,
+    adminsCount: full.adminsCount || null,
+    onlineCount: full.onlineCount || null,
     verified: !!chat.verified,
     broadcast: !!chat.broadcast,
     megagroup: !!chat.megagroup,
     photo,
+    users: await parseUsers(channelFull.users || []),
   };
 }
 
+/** API handler */
 export default async function handler(req, res) {
   const { username, limit = 10, offset_id = 0 } = req.query;
   if (!username) return res.status(400).json({ error: "Укажи username канала" });
@@ -91,9 +129,8 @@ export default async function handler(req, res) {
 
     // 1. Информация о канале
     const channel = await safeInvoke(new Api.channels.GetFullChannel({ channel: username }));
-    console.log('channel', channel);
     const channelInfo = await parseChannelFull(channel, username);
-    console.log('channelInfo', channelInfo);
+
     // 2. История сообщений
     const history = await safeInvoke(
       new Api.messages.GetHistory({
@@ -110,23 +147,35 @@ export default async function handler(req, res) {
 
         if (m.media instanceof Api.MessageMediaPhoto) {
           const photoData = await downloadPhotoSafely(m.media.photo);
-          media = { type: "photo", data: photoData };
+          media = { type: "photo", data: photoData }; // Buffer
         } else if (m.media instanceof Api.MessageMediaDocument) {
           const doc = m.media.document;
           if (doc.mimeType?.startsWith("video/")) {
             const videoSize = doc.size?.valueOf?.() || doc.size || 0;
-            const thumb =
-              doc.thumbs?.length > 0 ? await downloadPhotoSafely(doc) : null;
+            let videoData = null;
 
+            if (videoSize > 0 && videoSize <= 10 * 1024 * 1024) {
+              try {
+                const location = new Api.InputDocumentFileLocation({
+                  id: doc.id,
+                  accessHash: doc.accessHash,
+                  fileReference: doc.fileReference,
+                  thumbSize: "m",
+                });
+                videoData = await downloadVideoFile(client, location, videoSize); // Buffer
+              } catch (e) {
+                console.warn("Ошибка загрузки видео:", e.message);
+              }
+            }
+
+            const thumb = await downloadVideoThumbSafely(doc);
             media = {
               type: "video",
-              playable: true,
+              playable: !!videoData,
+              data: videoData, // Buffer
+              thumb, // Buffer
               size: videoSize,
               mimeType: doc.mimeType,
-              thumb,
-              fileId: doc.id.toString(),
-              accessHash: doc.accessHash.toString(),
-              fileReference: doc.fileReference.toString("base64"),
             };
           }
         }
