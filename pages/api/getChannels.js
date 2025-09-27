@@ -120,11 +120,10 @@ export default async function handler(req, res) {
   if (!username) return res.status(400).json({ error: "Укажи username канала" });
 
   try {
-    console.log(`getChannels: username=${username} limit=${limit} offset_id=${offset_id} skip_media=${skip_media}`);
 
-    // 1. Информация о канале
-    const channel = await safeInvoke(new Api.channels.GetFullChannel({ channel: username }));
-    const channelInfo = await parseChannelFull(channel, username);
+    // // 1. Информация о канале
+    // const channel = await safeInvoke(new Api.channels.GetFullChannel({ channel: username }));
+    // const channelInfo = await parseChannelFull(channel, username);
 
     // 2. История сообщений
     const history = await safeInvoke(
@@ -192,7 +191,7 @@ export default async function handler(req, res) {
       })
     );
 
-    return res.status(200).json({ channel: channelInfo, posts });
+    return res.status(200).json({ posts });
   } catch (err) {
     console.error("Ошибка API:", err);
     return res.status(500).json({ error: err.message || String(err) });

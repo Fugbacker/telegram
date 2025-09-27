@@ -27,6 +27,8 @@ export default async function handler(req, res) {
       })
     );
 
+    console.log("result:", result);
+
     const channels = [];
     if (result?.chats && Array.isArray(result.chats)) {
       for (const chat of result.chats) {
@@ -52,6 +54,8 @@ export default async function handler(req, res) {
         });
       }
     }
+
+
 
     res.status(200).json({ channels });
   } catch (err) {

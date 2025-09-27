@@ -15,6 +15,13 @@ import clientPromise from "@/libs/mongodbClient";
 import categoryIconsMap from "@/libs/icons";
 import photoChecker from '../../public/images/default.png';
 
+import { Api } from "telegram";
+import {
+  safeInvoke,
+  getTelegramClient,
+} from "../../utils/telegramClient";
+
+
 // --- словарь категорий ---
 const categoriesMap = {
   blogs: "Блоги",
@@ -240,6 +247,7 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
     ...initialChannel,
   });
 
+
   const [mediaMap, setMediaMap] = useState({});
   const [loadingMedia, setLoadingMedia] = useState(false);
 
@@ -259,30 +267,33 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
 
   // Форматируем даты и подгружаем медиа
   useEffect(() => {
+    console.log('KUKU');
+    console.log('posts', posts);
     const dates = {};
     posts.forEach(post => {
       dates[post.id] = new Date(post.date).toLocaleString();
     });
     setFormattedDates(dates);
 
-    if (posts.length > 0 && Object.keys(mediaMap).length === 0 && !loadingMedia) {
+    if (Object.keys(mediaMap).length === 0 && !loadingMedia) {
       setLoadingMedia(true);
-      fetch(`/api/getChannels?username=${channelName}&limit=${posts.length}&skip_media=0`)
-        .then(res => res.json())
-        .then(data => {
+      axios(`/api/getChannels?username=${channelName}&limit=10&skip_media=0`)
+        .then (({ data }) => {
           const map = {};
           data.posts.forEach(p => {
             if (p.media) map[p.id] = p.media;
           });
+          setPosts(prev => [...prev, ...data.posts]);
           setMediaMap(map);
           setLoadingMedia(false);
+          setLastMessageId(data.posts[data.posts.length - 1].id);
         })
         .catch(err => {
           console.error("Ошибка загрузки медиа:", err);
           setLoadingMedia(false);
         });
     }
-  }, [posts, channelName, mediaMap, loadingMedia]);
+  }, [channelName]);
 
   const loadMore = async () => {
     setLoading(true);
@@ -700,17 +711,60 @@ function classifyChannel(channelData, categoriesMap) {
   return { category: "other", category_ru: categoriesMap["other"] };
 }
 
+
+
+
+
 export async function getServerSideProps(context) {
+async function parseUsers(users) {
+  if (!users || !Array.isArray(users)) return [];
+  return users.map((u) => ({
+    id: u.id?.valueOf?.() ?? u.id,
+    username: u.username || null,
+    firstName: u.firstName || null,
+    lastName: u.lastName || null,
+    isBot: !!u.bot,
+  }));
+}
+  async function parseChannelFull(channelFull, username) {
+  const chat = channelFull.chats?.[0];
+  const full = channelFull.fullChat;
+  let photo = null;
+  try {
+    const buf = await client.downloadProfilePhoto(username);
+    if (buf) photo = `data:image/jpeg;base64,${buf.toString("base64")}`;
+  } catch (e) {
+    console.warn("Не удалось скачать логотип канала:", e.message);
+  }
+  return {
+    id: full.id.valueOf(),
+    title: chat.title,
+    username: chat.username || null,
+    description: full.about || null,
+    participantsCount: full.participantsCount || null,
+    adminsCount: full.adminsCount || null,
+    onlineCount: full.onlineCount || null,
+    verified: !!chat.verified,
+    broadcast: !!chat.broadcast,
+    megagroup: !!chat.megagroup,
+    photo,
+    users: await parseUsers(channelFull.users || []),
+  };
+}
+
+  const client = getTelegramClient();
   const { channel } = context.query;
   try {
-    const channelRes = await axios(`https://teletype.su/api/getChannels?username=${channel}&skip_media=1`);
-    const channelData = channelRes.data;
-    if (!channelData?.channel) {
+    const channelInfo = await safeInvoke(new Api.channels.GetFullChannel({ channel: channel }));
+    const channelData = await parseChannelFull(channelInfo, channel);
+    // const channelRes = await axios(`https://teletype.su/api/getChannels?username=${channel}&skip_media=1`);
+    // const channelData = channelRes.data;
+    if (!channelData) {
       return { notFound: true };
     }
 
-    const client = await clientPromise;
-    const db = client.db("tgstat");
+    const client1 = await clientPromise;
+    const db = client1.db("tgstat");
     const collection = db.collection("channels");
 
     let findChannel = await collection.findOne({ username: channel });
@@ -757,7 +811,7 @@ export async function getServerSideProps(context) {
 
     return {
       props: {
-        initialChannel: channelData.channel,
+        initialChannel: channelData,
         initialPosts: channelData.posts || [],
         channelName: channel,
         similarChannels: JSON.stringify(similarChannels),
@@ -768,7 +822,7 @@ export async function getServerSideProps(context) {
       },
     };
   } catch (err) {
-    console.error("getServerSideProps error:", err);
+
     return { notFound: true };
   }
 }
