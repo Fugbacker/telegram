@@ -35,6 +35,25 @@ export default async function handler(req, res) {
     }
 
     const doc = message.media.document;
+
+    console.log("🔍 Анализ видео:", {
+      messageId: parseInt(messageId),
+      channel,
+      mimeType: doc.mimeType,
+      size: doc.size?.valueOf?.() || doc.size,
+      id: doc.id.toString(),
+      accessHash: doc.accessHash.toString(),
+      fileReference: doc.fileReference?.toString("base64") || null,
+      attributes: doc.attributes?.map(a => ({
+        type: a.className,
+        fileName: a.fileName,
+        duration: a.duration,
+        width: a.w,
+        height: a.h,
+      })),
+      thumbs: doc.thumbs?.length || 0,
+    });
+
     const videoSize = doc.size?.valueOf?.() || doc.size || 0;
     let mimeType = doc.mimeType;
 
@@ -121,6 +140,7 @@ if (!mimeType || !mimeType.startsWith("video/")) {
     const chunk = await client.downloadFile(location, {
       offset: start,
       limit: chunkSize,
+      timeout: 30000, // 30 секунд
     });
 
     if (chunk && chunk.length > 0) {

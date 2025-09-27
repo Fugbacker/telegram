@@ -1,5 +1,5 @@
 // pages/channel/[channel].js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Meta from "@/Components/meta";
@@ -240,7 +240,6 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
     ...initialChannel,
   });
 
-  // --- Добавлено: состояние для медиа ---
   const [mediaMap, setMediaMap] = useState({});
   const [loadingMedia, setLoadingMedia] = useState(false);
 
@@ -266,7 +265,6 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
     });
     setFormattedDates(dates);
 
-    // Подгружаем медиа, если ещё не загружены
     if (posts.length > 0 && Object.keys(mediaMap).length === 0 && !loadingMedia) {
       setLoadingMedia(true);
       fetch(`/api/getChannels?username=${channelName}&limit=${posts.length}&skip_media=0`)
@@ -290,7 +288,7 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/getChannels?username=${channelName}&limit=10&offset_id=${lastMessageId}&skip_media=1`
+        `/api/getChannels?username=${channelName}&limit=10&offset_id=${lastMessageId}`
       );
       const data = await res.json();
       if (data.posts?.length) {
@@ -705,7 +703,6 @@ function classifyChannel(channelData, categoriesMap) {
 export async function getServerSideProps(context) {
   const { channel } = context.query;
   try {
-    // Запрос БЕЗ медиа для быстрой загрузки
     const channelRes = await axios(`https://teletype.su/api/getChannels?username=${channel}&skip_media=1`);
     const channelData = channelRes.data;
     if (!channelData?.channel) {
