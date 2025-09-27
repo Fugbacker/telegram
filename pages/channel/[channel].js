@@ -267,8 +267,6 @@ export default function ChannelPage({ initialChannel, initialPosts, channelName,
 
   // Форматируем даты и подгружаем медиа
   useEffect(() => {
-    console.log('KUKU');
-    console.log('posts', posts);
     const dates = {};
     posts.forEach(post => {
       dates[post.id] = new Date(post.date).toLocaleString();
