@@ -17,7 +17,7 @@ function selectBestPhotoSize(sizes) {
   for (const s of sizes) {
     if (s.w && s.h) {
       const max = Math.max(s.w, s.h);
-      if (max <= 320 && max > bestFit) {
+      if (max <= 1080 && max > bestFit) {
         best = s;
         bestFit = max;
       }
@@ -31,6 +31,7 @@ async function downloadPhotoSafely(photo) {
   if (!photo?.sizes?.length) return null;
   try {
     const best = selectBestPhotoSize(photo.sizes);
+
     if (!best) return null;
     const location = new Api.InputPhotoFileLocation({
       id: photo.id,
